@@ -11,7 +11,7 @@ services:
     ports:
       - "${CORE_POSTGRES_PORT:-5433}:5432"
     volumes:
-      - corePostgresData:/var/lib/postgresql/data
+      - corePostgresData:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${CORE_POSTGRES_USER:-postgres} -d ${CORE_POSTGRES_DB:-auth_db}"]
       interval: 5s
