@@ -1,0 +1,42 @@
+services:
+  corePostgres:
+    image: postgres:18.3-alpine
+    container_name: atanstack-core-postgres
+    env_file:
+      - .env.docker
+    environment:
+      POSTGRES_USER: ${CORE_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${CORE_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${CORE_POSTGRES_DB:-auth_db}
+    ports:
+      - "${CORE_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - corePostgresData:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CORE_POSTGRES_USER:-postgres} -d ${CORE_POSTGRES_DB:-auth_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  timescale:
+    image: timescale/timescaledb:latest-pg17
+    container_name: atanstack-timescale
+    env_file:
+      - .env.docker
+    environment:
+      POSTGRES_USER: ${TIMESCALE_USER:-postgres}
+      POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD:-postgres}
+      POSTGRES_DB: ${TIMESCALE_DB:-data_db}
+    ports:
+      - "${TIMESCALE_PORT:-5434}:5432"
+    volumes:
+      - timescaleData:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TIMESCALE_USER:-postgres} -d ${TIMESCALE_DB:-data_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  corePostgresData:
+  timescaleData:
