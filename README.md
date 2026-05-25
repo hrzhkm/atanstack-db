@@ -15,14 +15,14 @@ Centralized local database runtime for atanstack services.
 ## Usage
 
 ```bash
-cp .env.docker.example .env.docker
+cp .env.example .env
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-If you already had an older `.env.docker`, re-sync it after infra contract changes:
+If you already had an older `.env`, re-sync it after infra contract changes:
 
 ```bash
-cp .env.docker.example .env.docker
+cp .env.example .env
 ```
 
 ## Initialize Databases and Tables
@@ -39,7 +39,7 @@ Application tables are created by each service, not by `atanstack-db`.
 From `atanstack-db`:
 
 ```bash
-cp .env.docker.example .env.docker
+cp .env.example .env
 docker compose -f docker-compose.dev.yml up -d
 ```
 
@@ -48,7 +48,7 @@ docker compose -f docker-compose.dev.yml up -d
 From `atanstack-api-auth`:
 
 ```bash
-cp .env.docker.example .env.docker
+cp .env.example .env
 pnpm install
 pnpm db:generate
 pnpm db:push
@@ -63,7 +63,7 @@ What this does:
 From `atanstack-api-data`:
 
 ```bash
-cp .env.docker.example .env.docker
+cp .env.example .env
 cargo run
 ```
 
@@ -111,7 +111,7 @@ Then rerun:
 ## Troubleshooting
 
 - `api-auth` fails with `Can't reach database server at postgres:5432`:
-  - your `atanstack-api-auth/.env.docker` is still using old service-local host values.
+  - your `atanstack-api-auth/.env` is still using old service-local host values.
   - update it to use centralized DB host/port (`host.docker.internal:5433`).
 - `corePostgres` exits immediately on Postgres 18 images:
   - keep the volume mount at `/var/lib/postgresql` (not `/var/lib/postgresql/data`) for the official Postgres 18 image behavior.

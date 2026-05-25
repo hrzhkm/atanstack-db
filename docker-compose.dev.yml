@@ -3,7 +3,7 @@ services:
     image: postgres:18.3-alpine
     container_name: atanstack-core-postgres
     env_file:
-      - .env.docker
+      - .env
     environment:
       POSTGRES_USER: ${CORE_POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${CORE_POSTGRES_PASSWORD:-postgres}
@@ -22,7 +22,7 @@ services:
     image: timescale/timescaledb:latest-pg17
     container_name: atanstack-timescale
     env_file:
-      - .env.docker
+      - .env
     environment:
       POSTGRES_USER: ${TIMESCALE_USER:-postgres}
       POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD:-postgres}
