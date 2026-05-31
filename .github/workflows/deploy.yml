@@ -1,0 +1,81 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy.yml'
+      - 'docker-compose.dev.yml'
+      - '.env.example'
+      - 'README.md'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.repository }}-main
+  cancel-in-progress: true
+
+env:
+  STACK_NAME: atanstack-db
+  REMOTE_DIR: /opt/atanstack/atanstack-db
+  REMOTE_COMPOSE_FILE: docker-compose.dev.yml
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$SSH_PRIVATE_KEY"
+          test -n "$VPS_HOST"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Sync compose and env to VPS
+        env:
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_USER"
+          test -n "$VPS_HOST"
+
+          ssh "$VPS_USER@$VPS_HOST" "sudo mkdir -p '$REMOTE_DIR' && sudo chown -R $VPS_USER:$VPS_USER '$REMOTE_DIR'"
+          cat docker-compose.dev.yml | ssh "$VPS_USER@$VPS_HOST" "cat > '$REMOTE_DIR/$REMOTE_COMPOSE_FILE'"
+
+          if [ -n "$DEPLOY_ENV_FILE" ]; then
+            printf '%s\n' "$DEPLOY_ENV_FILE" | ssh "$VPS_USER@$VPS_HOST" "cat > '$REMOTE_DIR/.env'"
+          else
+            echo "DEPLOY_ENV_FILE secret is empty; skipping .env upload"
+          fi
+
+      - name: Deploy stack on VPS
+        env:
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          ssh "$VPS_USER@$VPS_HOST" "bash -s" <<'EOSSH'
+          set -euo pipefail
+          cd /opt/atanstack/atanstack-db
+          if [ -f .env ]; then
+            sudo docker compose --env-file .env -f docker-compose.dev.yml up -d
+          else
+            sudo docker compose -f docker-compose.dev.yml up -d
+          fi
+
+          sudo docker ps --filter 'name=atanstack-core-postgres' --filter status=running --format '{{.Names}}' | grep -q '^atanstack-core-postgres$'
+          sudo docker ps --filter 'name=atanstack-timescale' --filter status=running --format '{{.Names}}' | grep -q '^atanstack-timescale$'
+          sudo docker image prune -f
+          EOSSH
